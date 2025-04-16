@@ -1,0 +1,271 @@
+При помощи MS Visual C/C++ разработайте тестовое консольное
+приложение, используя ассемблерную вставку, решающую Ваш вариант
+задания. Вывести результат на консоль
+Мой вариант(13):
+Найти все трехзначные простые числа
+
+
+
+--- perplexity
+#include <iostream>
+#include <cmath>
+
+bool isPrime(int n) {
+    if (n <= 1) return false;
+    if (n == 2) return true;
+    if (n % 2 == 0) return false;
+
+    for (int i = 3; i <= sqrt(n); i += 2) {
+        if (n % i == 0) return false;
+    }
+    return true;
+}
+
+void findPrimes() {
+    __asm {
+        mov ecx, 100  // Начало трехзначных чисел
+        mov edx, 0    // Счетчик простых чисел
+
+    loop_start:
+        cmp ecx, 1000  // Конец трехзначных чисел
+        jge end_loop
+
+        push ecx        // Сохраняем текущее число
+        call isPrime    // Проверяем на простоту
+        add esp, 4      // Восстанавливаем стек
+
+        cmp eax, 1      // Если число простое
+        jne not_prime   // Переходим к следующему числу
+
+        inc edx         // Увеличиваем счетчик простых чисел
+        mov eax, ecx    // Выводим простое число
+        push eax
+        push offset msg
+        call printf
+        add esp, 8
+
+    not_prime:
+        inc ecx         // Переходим к следующему числу
+        jmp loop_start
+
+    end_loop:
+        mov eax, edx    // Выводим общее количество простых чисел
+        push eax
+        push offset count_msg
+        call printf
+        add esp, 8
+    }
+
+    return;
+}
+
+int main() {
+    const char msg[] = "%d\n";
+    const char count_msg[] = "Общее количество простых чисел: %d\n";
+
+    findPrimes();
+
+    return 0;
+}
+--- mistral
+#include <iostream>
+
+bool isPrime(int number) {
+    bool result = true;
+    __asm {
+        mov eax, number   ; Загружаем число в регистр eax
+        cmp eax, 2        ; Сравниваем с 2
+        jl not_prime      ; Если меньше 2, то число не простое
+        mov ecx, 2        ; Инициализируем делитель в регистре ecx
+
+    check_loop:
+        mov edx, 0        ; Очищаем регистр edx для деления
+        mov ebx, eax      ; Копируем число в регистр ebx
+        div ecx           ; Делим eax на ecx, результат в eax, остаток в edx
+        cmp edx, 0        ; Сравниваем остаток с 0
+        je not_prime      ; Если остаток равен 0, число не простое
+        inc ecx           ; Увеличиваем делитель
+        cmp ecx, eax      ; Сравниваем делитель с числом
+        jl check_loop     ; Если делитель меньше числа, продолжаем цикл
+        jmp prime         ; Если делитель равен числу, число простое
+
+    not_prime:
+        mov result, 0     ; Устанавливаем результат в false
+        jmp end_check
+
+    prime:
+        mov result, 1     ; Устанавливаем результат в true
+
+    end_check:
+    }
+    return result;
+}
+
+int main() {
+    std::cout << "Трехзначные простые числа:" << std::endl;
+    for (int i = 100; i <= 999; ++i) {
+        if (isPrime(i)) {
+            std::cout << i << " ";
+        }
+    }
+    std::cout << std::endl;
+    return 0;
+}
+---
+_asm {
+        // Проверка на 1 и 2 (оптимизация, хотя для трехзначных чисел не критично)
+        cmp n, 1
+        jle not_prime  // Если n <= 1, то не простое
+
+        cmp n, 2
+        je is_prime    // Если n == 2, то простое
+
+        // Проверка на четность (исключаем все четные числа, кроме 2)
+        mov eax, n
+        mov ecx, 2
+        cdq         // Расширение знака EAX в EDX:EAX (подготовка к делению)
+        idiv ecx    // Делим EDX:EAX на ECX (2), частное в EAX, остаток в EDX
+        cmp edx, 0
+        je not_prime  // Если остаток 0, то четное и не простое (кроме 2, которое уже обработали)
+
+        // Начинаем проверку делителей с 3 и далее только по нечетным (шаг 2)
+        mov eax, n      // eax = n (число для проверки)
+        mov ecx, 3      // ecx = divisor (начинаем с 3)
+    check_loop:
+        cmp ecx, eax    // Сравниваем divisor (ecx) с n (eax)
+        jge is_prime    // Если divisor >= n, значит делителей не найдено до корня (на самом деле до n, но для простоты примера) - число простое
+
+        mov edx, 0      // Очищаем EDX для остатка от деления (важно перед div)
+        idiv ecx        // Делим EDX:EAX на ECX (divisor), остаток в EDX
+        cmp edx, 0
+        je not_prime  // Если остаток 0, значит, делится на divisor, не простое
+
+        add ecx, 2      // Увеличиваем divisor на 2 (проверяем только нечетные делители)
+        jmp check_loop  // Переходим к следующей итерации цикла
+
+    is_prime:
+        mov result, 1   // Устанавливаем result = 1 (простое)
+        jmp end_asm
+
+    not_prime:
+        mov result, 0   // Устанавливаем result = 0 (не простое)
+
+    end_asm:
+        mov eax, result  // Возвращаем результат в EAX
+    }
+---qwen
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> primes;
+
+    for (int num = 100; num <= 999; num++) {
+        bool isPrime = false;
+        __asm {
+            push esi
+            push ebx
+            mov eax, num          // Загружаем текущее число в EAX
+            cmp eax, 2            // Проверка чисел меньше 2
+            jl not_prime
+            je is_prime           // 2 - простое
+            test eax, 1           // Проверка на четность
+            jz not_prime          // Если четное и не 2 - не простое
+            mov ecx, 3            // Начинаем проверку с делителя 3
+            mov esi, eax          // Сохраняем исходное число в ESI
+        check_loop:
+            mov eax, esi          // Восстанавливаем EAX для деления
+            mov ebx, ecx
+            imul ebx, ecx         // Вычисляем квадрат делителя (EBX = ECX^2)
+            cmp ebx, esi          // Сравниваем с исходным числом
+            jg is_prime           // Если ECX^2 > числа - простое
+            xor edx, edx          // Обнуляем EDX для деления
+            div ecx               // Делим EAX на ECX (EAX / ECX)
+            test edx, edx         // Проверяем остаток
+            jz not_prime          // Если остаток 0 - не простое
+            add ecx, 2            // Переходим к следующему нечетному делителю
+            jmp check_loop        // Повторяем цикл
+        is_prime:
+            mov isPrime, 1        // Устанавливаем флаг простого числа
+        not_prime:
+            pop ebx
+            pop esi
+        }
+        if (isPrime) {
+            primes.push_back(num);
+        }
+    }
+
+    cout << "Трехзначные простые числа:\n";
+    for (size_t i = 0; i < primes.size(); ++i) {
+        cout << primes[i] << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+---chatgpt
+
+#include <iostream>
+
+using namespace std;
+
+// Функция проверки на простоту с использованием inline-ассемблера
+bool isPrime(int n)
+{
+    // Числа меньше 2 не являются простыми
+    if (n < 2)
+        return false;
+    // 2 — простое число
+    if (n == 2)
+        return true;
+
+    bool prime = true; // Флаг, показывающий, что число простое
+
+    __asm {
+        // Сохраним число n в регистре ESI (оно не будет изменяться)
+        mov esi, n
+        // Начинаем проверку с делителя 2 (регистр ECX)
+        mov ecx, 2
+
+    check_loop:
+        // Если (делитель)^2 > n, дальнейшая проверка не нужна
+        mov eax, ecx
+        imul eax, ecx     // EAX = ECX * ECX
+        cmp eax, esi
+        jg end_loop       // если ECX^2 > n, выходим из цикла
+
+        // Подготовка деления: делим n на текущий делитель
+        mov eax, esi     // EAX = n
+        xor edx, edx     // обнуляем EDX (требуется для DIV)
+        div ecx         // после деления: EAX = n / ECX, EDX = n % ECX
+
+        cmp edx, 0      // если остаток равен 0, то найден делитель
+        je not_prime    // число составное
+
+        // Переходим к следующему делителю
+        inc ecx
+        jmp check_loop
+
+    not_prime:
+        mov prime, 0    // устанавливаем флаг: число не простое
+
+    end_loop:
+    }
+
+    return prime;
+}
+
+int main()
+{
+    cout << "Трехзначные простые числа:" << endl;
+
+    // Перебираем все трехзначные числа от 100 до 999
+    for (int i = 100; i < 1000; i++) {
+        if (isPrime(i))
+            cout << i << " ";
+    }
+    cout << endl;
+    return 0;
+}
